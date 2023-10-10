@@ -1,0 +1,71 @@
+cargo:rerun-if-env-changed=X86_64_PC_WINDOWS_MSVC_OPENSSL_LIB_DIR
+X86_64_PC_WINDOWS_MSVC_OPENSSL_LIB_DIR unset
+cargo:rerun-if-env-changed=OPENSSL_LIB_DIR
+OPENSSL_LIB_DIR = C:\Program Files (x86)\OpenSSL\lib
+cargo:rerun-if-env-changed=X86_64_PC_WINDOWS_MSVC_OPENSSL_INCLUDE_DIR
+X86_64_PC_WINDOWS_MSVC_OPENSSL_INCLUDE_DIR unset
+cargo:rerun-if-env-changed=OPENSSL_INCLUDE_DIR
+OPENSSL_INCLUDE_DIR = C:\Program Files (x86)\OpenSSL\include
+cargo:rustc-link-search=native=C:\Program Files (x86)\OpenSSL\lib
+cargo:include=C:\Program Files (x86)\OpenSSL\include
+cargo:rerun-if-changed=build/expando.c
+OPT_LEVEL = Some("0")
+TARGET = Some("x86_64-pc-windows-msvc")
+HOST = Some("x86_64-pc-windows-msvc")
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+CARGO_CFG_TARGET_FEATURE = Some("fxsr,sse,sse2")
+DEBUG = Some("true")
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+running: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.37.32822\\bin\\HostX64\\x64\\cl.exe" "-nologo" "-MD" "-Z7" "-Brepro" "-I" "C:\\Program Files (x86)\\OpenSSL\\include" "-W4" "-E" "build/expando.c"
+cargo:warning=expando.c
+
+exit code: 0
+version: 3_2_0
+cargo:rustc-cfg=openssl
+cargo:rustc-cfg=osslconf="OPENSSL_NO_SSL3_METHOD"
+cargo:conf=OPENSSL_NO_SSL3_METHOD
+cargo:rustc-cfg=ossl300
+cargo:rustc-cfg=ossl101
+cargo:rustc-cfg=ossl102
+cargo:rustc-cfg=ossl102f
+cargo:rustc-cfg=ossl102h
+cargo:rustc-cfg=ossl110
+cargo:rustc-cfg=ossl110f
+cargo:rustc-cfg=ossl110g
+cargo:rustc-cfg=ossl110h
+cargo:rustc-cfg=ossl111
+cargo:rustc-cfg=ossl111b
+cargo:rustc-cfg=ossl111c
+cargo:rustc-cfg=ossl111d
+cargo:version_number=30200000
+cargo:rerun-if-env-changed=X86_64_PC_WINDOWS_MSVC_OPENSSL_LIBS
+X86_64_PC_WINDOWS_MSVC_OPENSSL_LIBS unset
+cargo:rerun-if-env-changed=OPENSSL_LIBS
+OPENSSL_LIBS unset
+cargo:rerun-if-env-changed=X86_64_PC_WINDOWS_MSVC_OPENSSL_STATIC
+X86_64_PC_WINDOWS_MSVC_OPENSSL_STATIC unset
+cargo:rerun-if-env-changed=OPENSSL_STATIC
+OPENSSL_STATIC unset
+cargo:rustc-link-lib=static=libssl
+cargo:rustc-link-lib=static=libcrypto
+cargo:rustc-link-lib=dylib=gdi32
+cargo:rustc-link-lib=dylib=user32
+cargo:rustc-link-lib=dylib=crypt32
+cargo:rustc-link-lib=dylib=ws2_32
+cargo:rustc-link-lib=dylib=advapi32

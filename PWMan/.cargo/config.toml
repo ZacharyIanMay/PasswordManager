@@ -1,0 +1,5 @@
+[env]
+TEST = "test"
+OPENSSL_DIR = "C:\\Program Files (x86)\\OpenSSL"
+OPENSSL_LIB_DIR = "C:\\Program Files (x86)\\OpenSSL\\lib"
+OPENSSL_INCLUDE_DIR = "C:\\Program Files (x86)\\OpenSSL\\include"

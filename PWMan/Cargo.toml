@@ -1,10 +1,10 @@
 [package]
-name = "PWMan"
+name = "pwman"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-openssl = "0.10.57"
-openssl-sys = "0.9.93"
+ openssl = "0.10.57"
+ openssl-sys = "0.9.93"
