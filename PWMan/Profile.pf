@@ -1,0 +1,3 @@
+testing reading a file
+I want to append some more text to the end of this
+I wonder how linebreaks end up when converted to a string
