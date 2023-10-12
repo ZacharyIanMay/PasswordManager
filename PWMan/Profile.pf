@@ -1,3 +1,14 @@
 testing reading a file
 I want to append some more text to the end of this
 I wonder how linebreaks end up when converted to a string
+test
+new line
+
+I'm typeing
+testing without newline
+it works?
+nice
+Username isn't 'test'Username isn't 'test'Username isn't 'test'
+Username isn't 'test'
+Username isn't 'test'
+Username isn't 'test'
