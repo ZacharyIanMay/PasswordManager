@@ -9,13 +9,12 @@ fn main() -> std::io::Result<()>
     let mut username = String::new();
     let mut pass = String::new();
     let mut s = String::new();
-    let inp = stdin();
     println!("Please enter your username:");
-    inp.read_line(&mut username)?;
-    if(&username == "test")
+    username = read_trimmed(&mut username)?.to_string();
+    if(username == "test")
     {
         println!("Please enter you password:");
-        inp.read_line(&mut pass)?;
+        read_trimmed(&mut pass)?.to_string();
         s = format!("{username}:{pass}");
     }
     else
@@ -25,6 +24,14 @@ fn main() -> std::io::Result<()>
     }
     
     add_line(s)
+}
+
+fn read_trimmed(s : &mut String) -> std::io::Result<&str>
+{
+    let std = stdin();
+    std.read_line(s)?;
+    let s = s.trim();
+    return Ok(s);
 }
 
 fn add_line(line : String) -> std::io::Result<()> {
