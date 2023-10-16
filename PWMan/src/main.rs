@@ -3,7 +3,6 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::stdin;
-use openssl::sha::sha256;
 // TODO: Create sha256 for use in this program, since openSSL bugs out
 use rsa;
 use anyhow::bail;
@@ -35,7 +34,7 @@ fn main() -> anyhow::Result<()>
     // println!("{s}");
     // println!("{}", hs);
     // println!("{es}");
-    // add_line(s)
+    add_line(s)
 }
 
 fn read_trimmed(s : &mut String) -> anyhow::Result<&str>
