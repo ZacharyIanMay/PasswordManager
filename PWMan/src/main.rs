@@ -3,8 +3,12 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::stdin;
+use openssl::sha::sha256;
+// TODO: Create sha256 for use in this program, since openSSL bugs out
+use rsa;
+use anyhow::bail;
 
-fn main() -> std::io::Result<()>
+fn main() -> anyhow::Result<()>
 {
     let mut username = String::new();
     let mut pass = String::new();
@@ -22,11 +26,19 @@ fn main() -> std::io::Result<()>
         println!("\n\n'{}'", &username);
         s = "Username isn't 'test'\n".to_string();
     }
+
+    // let shash = s.clone();
+    // let hs = sha256(&shash.into_bytes());
+    // let hs = String::from_utf8(hs.to_vec())?;
     
-    add_line(s)
+
+    // println!("{s}");
+    // println!("{}", hs);
+    // println!("{es}");
+    // add_line(s)
 }
 
-fn read_trimmed(s : &mut String) -> std::io::Result<&str>
+fn read_trimmed(s : &mut String) -> anyhow::Result<&str>
 {
     let std = stdin();
     std.read_line(s)?;
@@ -34,11 +46,11 @@ fn read_trimmed(s : &mut String) -> std::io::Result<&str>
     return Ok(s);
 }
 
-fn add_line(line : String) -> std::io::Result<()> {
+fn add_line(line : String) -> anyhow::Result<()> {
     let p = env::var("PROFILE");
     match p
     {
-        Err(e) => {Err(std::io::Error::new(std::io::ErrorKind::NotFound, e))}
+        Err(e) => {bail!("Couldn't find ENV var")}
         Ok(pf) =>
         {
             let mut profile = OpenOptions::new().write(true).append(true).create(true).open(&pf)?;
