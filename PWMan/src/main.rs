@@ -3,8 +3,8 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::stdin;
-// TODO: Create sha256 for use in this program, since openSSL bugs out
 use rsa;
+use sha2;
 use anyhow::bail;
 
 fn main() -> anyhow::Result<()>
