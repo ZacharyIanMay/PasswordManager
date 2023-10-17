@@ -60,7 +60,7 @@ fn main() -> anyhow::Result<()>
     let shash = Base64::encode_string(&shash);
     println!("{}", shash);
 
-    // Look for a Password based key derivation function
+    // Look for a Password based key derivation function, likely PBKDF2 from rustcrypto
 
     add_line(s)
 }
