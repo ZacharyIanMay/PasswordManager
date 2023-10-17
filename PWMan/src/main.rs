@@ -3,9 +3,33 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::stdin;
-use rsa;
-use sha2;
+use base64ct::{Base64, Encoding};
+use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
+use sha2::{Sha512, Digest};
 use anyhow::bail;
+
+/**
+ * TODO:
+ * Don't make profile based on env, allow user input
+ * Clear Profile.pf
+ * Place hash of text on the first line of file(include all but the hash itself)
+ * Place salt on second line of file(nonencrypted)
+ * Place password encrypted secret key on third line of file
+ * Place salted hash on fourth line of file(encrypted)
+ * 
+ * 
+ * Login Process:
+ * check that line 1(hash of contents) is valid
+ * take user input
+ * format input
+ * add salt
+ * hash
+ * use to decrypt third line(secret key)
+ * check if the hash properly decrypted the secret key via fourth line(stored version of salted hash)
+ * 
+ * 
+ * After any additions or edits to the file, rehash the file and store the hash on the first line
+ */
 
 fn main() -> anyhow::Result<()>
 {
@@ -26,14 +50,18 @@ fn main() -> anyhow::Result<()>
         s = "Username isn't 'test'\n".to_string();
     }
 
-    // let shash = s.clone();
-    // let hs = sha256(&shash.into_bytes());
-    // let hs = String::from_utf8(hs.to_vec())?;
-    
+    // Generate a salted hash based on login credentials, convert to base64
+    let shash = s.clone();
+    let mut hasher = Sha512::new();
+    hasher.update(shash);
+    // let salt = generateSalt();
+    // hasher.update(salt);
+    let shash = hasher.finalize();
+    let shash = Base64::encode_string(&shash);
+    println!("{}", shash);
 
-    // println!("{s}");
-    // println!("{}", hs);
-    // println!("{es}");
+    // Look for a Password based key derivation function
+
     add_line(s)
 }
 

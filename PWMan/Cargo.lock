@@ -308,6 +308,7 @@ name = "pwman"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64ct",
  "openssl",
  "openssl-sys",
  "rsa",
