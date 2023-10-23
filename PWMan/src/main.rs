@@ -18,8 +18,7 @@ use hex::*;
  * Clear Profile.pf
  * Place hash of text on the first line of file(include all but the hash itself)
  * Place salt on second line of file(nonencrypted)
- * Place password encrypted secret key on third line of file
- * Place salted hash on fourth line of file(encrypted)
+ * Place salted hash of {username}:{password} on third line of file(encrypted)
  * 
  * 
  * Login Process:
@@ -40,6 +39,7 @@ fn main() -> anyhow::Result<()>
     let mut username = String::new();
     let mut pass = String::new();
     let mut s = String::new();
+    let file_contents = "the rest of the file";
     username = read_trimmed(&mut username, "Please enter your username:")?;
     if(username == "test")
     {
@@ -56,7 +56,7 @@ fn main() -> anyhow::Result<()>
     let shash = s.clone();
     let mut hasher = Sha512::new();
     hasher.update(shash);
-    let salt = rand::random::<i32>();
+    let salt = 1111; //check if file has salt, if not create one: rand::random::<i32>(); else use the existing one
     hasher.update(salt.to_string());
     let shash = hasher.finalize();
     let shash = Base64::encode_string(&shash);
@@ -79,27 +79,58 @@ fn main() -> anyhow::Result<()>
     let pub_key = RsaPublicKey::from(&priv_key);
 
     let pem = priv_key.to_pkcs8_pem(LineEnding::default())?.to_string();
-    add_line(pem)?;
 
     // checking encryption and decryption
     let tbe = "This line is encrypted";
-    println!("{tbe}");
     let mut rng = rand::thread_rng();
     let enc = pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, tbe.as_bytes()).expect("failed to encrypt");
-    println!("{:?}", enc);
     let enc_h = hex::encode(enc);
-    println!("{enc_h}");
-    add_line(enc_h.clone())?;
+    let eh = enc_h.clone();
     let dec : Vec<u8> = hex::decode(enc_h)?;
-    println!("{:?}", dec);
     let dec_s = priv_key.decrypt(Pkcs1v15Encrypt, &dec)?;
     // add_line(std::str::from_utf8(&enc)?.to_string())?;
     // let dec = priv_key.decrypt(Pkcs1v15Encrypt, &to_dec)?;
     // add_line(std::str::from_utf8(&dec)?.to_string())?;
+    let t = "test";
+    let e = enc_line(t.to_string(), pub_key.clone())?;
+    let ep = e.clone();
+    let d = dec_line(e, priv_key)?;
+    println!("{ep}");
+    println!("{d}");
 
-    add_line(s)?;
-    add_line(format!("{}\n", salt.to_string()))?;
+    
+    let mut ver_hasher = Sha512::new();
+    ver_hasher.update(""); // TODO: replace with new file contents
+    let ver_hash = Base64::encode_string(&ver_hasher.finalize());
+    let written = ver_hash + "\n" + salt.to_string().as_str() + "\n" + enc_line(shash, pub_key.clone())?.as_str() + "\n" + file_contents;
+    add_line(written)?;
+    // add_line(eh)?;
+    // add_line(pem)?;
+    // add_line(s)?;
+    // add_line(format!("{}\n", salt.to_string()))?;
     print_file()
+}
+
+fn enc_line(s: String, pub_key : RsaPublicKey) -> anyhow::Result<String>
+{
+    println!("{s}");
+    let mut rng = rand::thread_rng();
+    let enc = pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, s.as_bytes()).expect("failed to encrypt");
+    println!("{:?}", enc);
+    let enc_h = hex::encode(enc);
+    println!("{enc_h}");
+    return Ok(enc_h);
+    
+}
+
+fn dec_line(s: String, priv_key : RsaPrivateKey) -> anyhow::Result<String>
+{
+    let dec : Vec<u8> = hex::decode(s)?;
+    println!("{:?}", dec);
+    let dec_s = priv_key.decrypt(Pkcs1v15Encrypt, &dec)?;
+    let ret = std::str::from_utf8(&dec_s)?;
+    println!("{ret}");
+    return Ok(ret.to_string());
 }
 
 fn read_trimmed(s : &mut String, query : &str) -> anyhow::Result<String>
@@ -118,7 +149,7 @@ fn add_line(line : String) -> anyhow::Result<()> {
         Err(e) => {bail!("Couldn't find ENV var")}
         Ok(pf) =>
         {
-            let mut profile = OpenOptions::new().write(true).append(true).create(true).open(&pf)?;
+            let mut profile = OpenOptions::new().write(true).create(true).open(&pf)?;
             let s = format!("{line}");
             profile.write_all(s.as_bytes())?;
             return Ok(());
