@@ -40,9 +40,10 @@ fn main() -> anyhow::Result<()>
     // Get information from the file
     let mut username = String::new();
     let mut pass = String::new();
-    let mut s = String::new();
 
     let original_content = read_file()?;
+    // TODO: Check if the file was empty via match and make the two different execution paths into functiosn, avoid this execution path, move to the new document creation step
+    
     let split_file = original_content.as_str().split('\n');
     let mut i = 0;
     let mut entries : Vec<&str> = Vec::new();
@@ -82,10 +83,11 @@ fn main() -> anyhow::Result<()>
     let mut file_hash = Sha512::new();
     file_hash.update(cont);
     let verification = Base64::encode_string(&file_hash.finalize());
-    if(verification != original_hash)
+    if verification != original_hash
     {
         bail!("File has been modified, exiting");
     }
+    
 
     // Propmt user for login credentials
     // store credentials
@@ -97,7 +99,7 @@ fn main() -> anyhow::Result<()>
     let file_contents = "the rest of the file";
     username = read_trimmed(&mut username, "Please enter your username:")?;
     read_trimmed(&mut pass, "Please enter your password:")?;
-    s = format!("{username}:{pass}");
+    let s = format!("{username}:{pass}");
     // Generate a salted hash based on login credentials, convert to base64
     let shash = s.clone();
     let mut hasher = Sha512::new();
@@ -115,18 +117,40 @@ fn main() -> anyhow::Result<()>
     pbkdf2_hmac::<Sha512>(password.as_bytes(), pbkdf_salt.to_string().as_bytes(), n, &mut k1);
     // This creats an RSA private key
     let mut seeded_rng = ChaCha20Rng::from_seed(k1);
-    let mut srng = seeded_rng.clone();
     let priv_key = RsaPrivateKey::new(&mut seeded_rng, 2048).expect("failed to generate a key");
     let pub_key = RsaPublicKey::from(&priv_key);
-    let pem = priv_key.to_pkcs8_pem(LineEnding::default())?.to_string();
-    // checking encryption and decryption TODO: make this actually check the users credentials
-    let t = "test";
-    let e = enc_line(t.to_string(), pub_key.clone())?;
-    let ep = e.clone();
-    let d = dec_line(e, priv_key)?;
-    println!("{ep}");
-    println!("{d}");
+    //let pem = priv_key.to_pkcs8_pem(LineEnding::default())?.to_string();
 
+    // checking encryption and decryption TODO: make this actually check the users credentials
+    let valid = dec_line(login_hash.to_string(), priv_key.clone())?;
+    if valid != shash
+    {
+        bail!("Invalid login credentials");
+    }
+    for entry in entries
+    {
+        println!("{}", dec_line(entry.to_string(), priv_key.clone())?);
+    }
+
+    let options = "Please enter the number corresponding to the option you would like to select\n 1. Add a new password\n 2. Edit a password\n 3. Remove a password\n Other: Exit";
+    let mut option = String::new();
+    read_trimmed(&mut option, options)?;
+    match option.parse::<i32>()?
+    {
+        1 => {
+            //TODO: add password
+        }
+        2 => {
+            //TODO: edit password
+        }
+        3 => {
+            //TODO: delete password
+        }
+        _ => {
+            // Do nothing, exit
+        }
+    }
+    
     // Go through entries vector and decrypt all the entries
     // Display entries to the user
     // Allow the user to make changes to the entries
@@ -183,7 +207,7 @@ fn add_line(line : String) -> anyhow::Result<()> {
     let p = env::var("PROFILE");
     match p
     {
-        Err(e) => {bail!("Couldn't find ENV var")}
+        Err(e) => {bail!("Couldn't find ENV var. Error: {}", e)}
         Ok(pf) =>
         {
             let mut profile = OpenOptions::new().write(true).create(true).open(&pf)?;
@@ -198,7 +222,7 @@ fn print_file() -> anyhow::Result<()> {
     let p = env::var("PROFILE");
     match p
     {
-        Err(e) => {bail!("Couldn't find ENV var")}
+        Err(e) => {bail!("Couldn't find ENV var. Error: {}", e)}
         Ok(pf) =>
         {
             let mut profile = File::open(&pf)?;
@@ -214,7 +238,7 @@ fn read_file() -> anyhow::Result<String> {
     let p = env::var("PROFILE");
     match p
     {
-        Err(e) => {bail!("Couldn't find ENV var")}
+        Err(e) => {bail!("Couldn't find ENV var. Error: {}", e)}
         Ok(pf) =>
         {
             let mut profile = File::open(&pf)?;
