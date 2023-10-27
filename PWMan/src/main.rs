@@ -127,7 +127,7 @@ fn main() -> anyhow::Result<()>
     {
         bail!("Invalid login credentials");
     }
-    for entry in entries
+    for entry in entries.clone()
     {
         println!("{}", dec_line(entry.to_string(), priv_key.clone())?);
     }
@@ -138,13 +138,13 @@ fn main() -> anyhow::Result<()>
     match option.parse::<i32>()?
     {
         1 => {
-            //TODO: add password
+            entries.push(add_password(pub_key.clone())?.as_str());
         }
         2 => {
-            //TODO: edit password
+            // Edit password
         }
         3 => {
-            //TODO: delete password
+            delete_password(priv_key.clone(), &mut entries)?;
         }
         _ => {
             // Do nothing, exit
@@ -170,6 +170,35 @@ fn main() -> anyhow::Result<()>
     // add_line(s)?;
     // add_line(format!("{}\n", salt.to_string()))?;
     print_file()
+}
+
+fn add_password(pub_key : RsaPublicKey) -> anyhow::Result<String>
+{
+    let mut user = String::new();
+    user = read_trimmed(&mut user, "Please type new entries username:")?;
+    let mut pass = String::new();
+    pass = read_trimmed(&mut pass, "Please type new entries password:")?;
+    let s = format!("{user}:{pass}");
+    let e = enc_line(s, pub_key)?;
+    return Ok(e);
+}
+
+fn delete_password(priv_key : RsaPrivateKey, entries : &mut Vec<&str>) -> anyhow::Result<()>
+{
+    let mut search = String::new();
+    search = read_trimmed(&mut search, "Please enter the name of the site to remove from management:")?;
+    let mut i : i32 = 0;
+    let ind = entries.iter().position(|x| *x == search);
+    match ind
+    {
+        Some(i) => {
+            entries.remove(i);
+            return Ok(());
+        }
+        _ => {
+            bail!("No such site");
+        }
+    }
 }
 
 fn enc_line(s: String, pub_key : RsaPublicKey) -> anyhow::Result<String>
