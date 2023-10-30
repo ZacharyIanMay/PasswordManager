@@ -46,7 +46,7 @@ fn main() -> anyhow::Result<()>
     
     let split_file = original_content.as_str().split('\n');
     let mut i = 0;
-    let mut entries : Vec<&str> = Vec::new();
+    let mut entries : Vec<String> = Vec::new();
     let mut original_hash = "";
     let mut salt = rand::random::<i32>();
     let mut login_hash = "";
@@ -64,7 +64,7 @@ fn main() -> anyhow::Result<()>
                 login_hash = entry;
             }
             _ => {
-                entries.push(entry);
+                entries.push(entry.to_string());
             }
         }
         i += 1;
@@ -78,7 +78,7 @@ fn main() -> anyhow::Result<()>
     let mut cont : String = String::new();
     for e in ver_entries
     {
-        cont.push_str(e);
+        cont.push_str(e.as_str());
     }
     let mut file_hash = Sha512::new();
     file_hash.update(cont);
@@ -138,13 +138,28 @@ fn main() -> anyhow::Result<()>
     match option.parse::<i32>()?
     {
         1 => {
-            entries.push(add_password(pub_key.clone())?.as_str());
+            let mut site = String::new();
+            let mut user = String::new();
+            let mut pass = String::new();
+            site = read_trimmed(&mut site, "Please type new entries site:")?;
+            user = read_trimmed(&mut user, "Please type new entries username:")?;
+            pass = read_trimmed(&mut pass, "Please type new entries password:")?;
+            add_password(pub_key.clone(), site, user, pass)?;
         }
         2 => {
-            // Edit password
+            let mut site = String::new();
+            let mut user = String::new();
+            let mut pass = String::new();
+            site = read_trimmed(&mut site, "Please type the site's name:")?;
+            user = read_trimmed(&mut user, "Please type the site's username:")?;
+            pass = read_trimmed(&mut pass, "Please type the new password:")?;
+            delete_password(priv_key.clone(), &mut entries, site.clone())?;
+            entries.push(add_password(pub_key.clone(), site, user, pass)?);
         }
         3 => {
-            delete_password(priv_key.clone(), &mut entries)?;
+            let mut site = String::new();
+            site = read_trimmed(&mut site, "Please enter the name of the site to remove from management:")?;
+            delete_password(priv_key.clone(), &mut entries, site)?;
         }
         _ => {
             // Do nothing, exit
@@ -172,23 +187,22 @@ fn main() -> anyhow::Result<()>
     print_file()
 }
 
-fn add_password(pub_key : RsaPublicKey) -> anyhow::Result<String>
+fn add_password<'a>(pub_key : RsaPublicKey, site : String, user : String, pass : String) -> anyhow::Result<String>
 {
-    let mut user = String::new();
-    user = read_trimmed(&mut user, "Please type new entries username:")?;
-    let mut pass = String::new();
-    pass = read_trimmed(&mut pass, "Please type new entries password:")?;
-    let s = format!("{user}:{pass}");
+    let s = format!("{site}:{user}:{pass}");
     let e = enc_line(s, pub_key)?;
     return Ok(e);
 }
 
-fn delete_password(priv_key : RsaPrivateKey, entries : &mut Vec<&str>) -> anyhow::Result<()>
+fn delete_password(priv_key : RsaPrivateKey, entries : &mut Vec<String>, site : String) -> anyhow::Result<()>
 {
-    let mut search = String::new();
-    search = read_trimmed(&mut search, "Please enter the name of the site to remove from management:")?;
-    let mut i : i32 = 0;
-    let ind = entries.iter().position(|x| *x == search);
+    let mut copy : Vec<String> = vec![];
+    for entry in entries.clone()
+    {
+        let e = dec_line(entry, priv_key.clone())?;
+        copy.push(e);
+    }
+    let ind = copy.iter().position(|x| *x == site);
     match ind
     {
         Some(i) => {
