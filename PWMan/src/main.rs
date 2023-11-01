@@ -42,50 +42,59 @@ fn main() -> anyhow::Result<()>
     let mut pass = String::new();
 
     let original_content = read_file()?;
-    // TODO: Check if the file was empty via match and make the two different execution paths into functiosn, avoid this execution path, move to the new document creation step
     
     let split_file = original_content.as_str().split('\n');
-    let mut i = 0;
     let mut entries : Vec<String> = Vec::new();
     let mut original_hash = "";
     let mut salt = rand::random::<i32>();
     let mut login_hash = "";
-    for entry in split_file
-    {
-        match i
-        {
-            0 => {
-                original_hash = entry;
-            }
-            1 => {
-                salt = entry.parse::<i32>()?;
-            }
-            2 => {
-                login_hash = entry;
-            }
-            _ => {
-                entries.push(entry.to_string());
-            }
-        }
-        i += 1;
-    }
 
-    // This verifies the file hash and rejects the input file if it does not match
-    // clone entries, and combine back into one large string
-    // create hash of all entries
-    // check if the hash matches the stored hash, if not return an error
-    let ver_entries = entries.clone();
-    let mut cont : String = String::new();
-    for e in ver_entries
+    let mut new_file = 0;
+    
+    if original_content.is_empty()
     {
-        cont.push_str(e.as_str());
+        new_file = 1;
     }
-    let mut file_hash = Sha512::new();
-    file_hash.update(cont);
-    let verification = Base64::encode_string(&file_hash.finalize());
-    if verification != original_hash
+    else
     {
-        bail!("File has been modified, exiting");
+        let mut i = 0;
+        for entry in split_file
+        {
+            match i
+            {
+                0 => {
+                    original_hash = entry;
+                }
+                1 => {
+                    salt = entry.parse::<i32>()?;
+                }
+                2 => {
+                    login_hash = entry;
+                }
+                _ => {
+                    entries.push(entry.to_string());
+                }
+            }
+            i += 1;
+        }
+
+        // This verifies the file hash and rejects the input file if it does not match
+        // clone entries, and combine back into one large string
+        // create hash of all entries
+        // check if the hash matches the stored hash, if not return an error
+        let ver_entries = entries.clone();
+        let mut cont : String = String::new();
+        for e in ver_entries
+        {
+            cont.push_str(e.as_str());
+        }
+        let mut file_hash = Sha512::new();
+        file_hash.update(cont);
+        let verification = Base64::encode_string(&file_hash.finalize());
+        if verification != original_hash
+        {
+            bail!("File has been modified, exiting");
+        }
     }
     
 
@@ -120,20 +129,24 @@ fn main() -> anyhow::Result<()>
     let pub_key = RsaPublicKey::from(&priv_key);
     //let pem = priv_key.to_pkcs8_pem(LineEnding::default())?.to_string();
 
-    // checking encryption and decryption TODO: make this actually check the users credentials
-    let valid = dec_line(login_hash.to_string(), priv_key.clone())?;
-    if valid != shash
+    if new_file == 0
     {
-        bail!("Invalid login credentials");
-    }
-    for entry in entries.clone()
-    {
-        println!("{}", dec_line(entry.to_string(), priv_key.clone())?);
+        // checking encryption and decryption
+        let valid = dec_line(login_hash.to_string(), priv_key.clone())?;
+        if valid != shash
+        {
+            bail!("Invalid login credentials");
+        }
+        for entry in entries.clone()
+        {
+            println!("{}", dec_line(entry.to_string(), priv_key.clone())?);
+        }
     }
 
     let options = "Please enter the number corresponding to the option you would like to select\n 1. Add a new password\n 2. Edit a password\n 3. Remove a password\n Other: Exit";
     let mut option = String::new();
-    read_trimmed(&mut option, options)?;
+    option = read_trimmed(&mut option, options)?;
+    println!("Read input: {option}");
     match option.parse::<i32>()?
     {
         1 => {
@@ -143,7 +156,7 @@ fn main() -> anyhow::Result<()>
             site = read_trimmed(&mut site, "Please type new entries site:")?;
             user = read_trimmed(&mut user, "Please type new entries username:")?;
             pass = read_trimmed(&mut pass, "Please type new entries password:")?;
-            add_password(pub_key.clone(), site, user, pass)?;
+            entries.push(add_password(pub_key.clone(), site, user, pass)?);
         }
         2 => {
             let mut site = String::new();
@@ -164,6 +177,10 @@ fn main() -> anyhow::Result<()>
             // Do nothing, exit
         }
     }
+    for entry in entries.clone()
+    {
+        println!("{}", dec_line(entry.to_string(), priv_key.clone())?);
+    }
     
     // Go through entries vector and decrypt all the entries
     // Display entries to the user
@@ -176,7 +193,7 @@ fn main() -> anyhow::Result<()>
     // combine hash, salt, encrypted hash, and file contents, and write to file
     let mut file_contents = String::new();
     let mut c = 0;
-    for entry in entries
+    for entry in entries.clone()
     {
         if c == 0
         {
@@ -188,9 +205,18 @@ fn main() -> anyhow::Result<()>
         }
         c += 1;
     }
+
+
+    let mut ver_cont : String = String::new();
+    for e in entries.clone()
+    {
+        ver_cont.push_str(e.as_str());
+    }
     let mut ver_hasher = Sha512::new();
-    ver_hasher.update(file_contents.clone());
+    ver_hasher.update(ver_cont);
     let ver_hash = Base64::encode_string(&ver_hasher.finalize());
+
+
     let written = ver_hash + "\n" + salt.to_string().as_str() + "\n" + enc_line(shash, pub_key.clone())?.as_str() + "\n" + file_contents.as_str();
     add_line(written)?;
     // add_line(eh)?;
