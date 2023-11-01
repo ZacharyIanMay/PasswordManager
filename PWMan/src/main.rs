@@ -96,7 +96,6 @@ fn main() -> anyhow::Result<()>
     // generate RSA priv and pub keys
     // decrypt stored hash of login credentials
     // check if login credentials are correct, if not reject their login attempt
-    let file_contents = "the rest of the file";
     username = read_trimmed(&mut username, "Please enter your username:")?;
     read_trimmed(&mut pass, "Please enter your password:")?;
     let s = format!("{username}:{pass}");
@@ -175,10 +174,24 @@ fn main() -> anyhow::Result<()>
     // hash and store file contents
     // clear file of previous content
     // combine hash, salt, encrypted hash, and file contents, and write to file
+    let mut file_contents = String::new();
+    let mut c = 0;
+    for entry in entries
+    {
+        if c == 0
+        {
+            file_contents = entry;
+        }
+        else
+        {
+            file_contents = file_contents + "\n" + entry.as_str();
+        }
+        c += 1;
+    }
     let mut ver_hasher = Sha512::new();
-    ver_hasher.update(""); // TODO: replace with new file contents
+    ver_hasher.update(file_contents.clone());
     let ver_hash = Base64::encode_string(&ver_hasher.finalize());
-    let written = ver_hash + "\n" + salt.to_string().as_str() + "\n" + enc_line(shash, pub_key.clone())?.as_str() + "\n" + file_contents;
+    let written = ver_hash + "\n" + salt.to_string().as_str() + "\n" + enc_line(shash, pub_key.clone())?.as_str() + "\n" + file_contents.as_str();
     add_line(written)?;
     // add_line(eh)?;
     // add_line(pem)?;
@@ -254,6 +267,7 @@ fn add_line(line : String) -> anyhow::Result<()> {
         Ok(pf) =>
         {
             let mut profile = OpenOptions::new().write(true).create(true).open(&pf)?;
+            profile.set_len(0)?;
             let s = format!("{line}");
             profile.write_all(s.as_bytes())?;
             return Ok(());
