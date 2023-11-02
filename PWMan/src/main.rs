@@ -238,7 +238,19 @@ fn delete_password(priv_key : RsaPrivateKey, entries : &mut Vec<String>, site : 
     let mut copy : Vec<String> = vec![];
     for entry in entries.clone()
     {
-        let e = dec_line(entry, priv_key.clone())?;
+        let mut e = dec_line(entry, priv_key.clone())?;
+        // TODO: split the entry into just the site so that the check returns true
+        let ind = e.clone();
+        let ind = ind.split(":");
+        let mut iter = 0;
+        for part in ind
+        {
+            if iter == 0
+            {
+                e = part.to_string();
+            }
+            iter += 1;
+        }
         copy.push(e);
     }
     let ind = copy.iter().position(|x| *x == site);
@@ -249,6 +261,7 @@ fn delete_password(priv_key : RsaPrivateKey, entries : &mut Vec<String>, site : 
             return Ok(());
         }
         _ => {
+            println!("{:?}", copy);
             bail!("No such site");
         }
     }
