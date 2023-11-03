@@ -88,6 +88,7 @@ fn main() -> anyhow::Result<()>
         {
             cont.push_str(e.as_str());
         }
+        cont.push_str(login_hash);
         let mut file_hash = Sha512::new();
         file_hash.update(cont);
         let verification = Base64::encode_string(&file_hash.finalize());
@@ -108,6 +109,7 @@ fn main() -> anyhow::Result<()>
     username = read_trimmed(&mut username, "Please enter your username:")?;
     read_trimmed(&mut pass, "Please enter your password:")?;
     let s = format!("{username}:{pass}");
+    println!("\nVerifying . . .\n");
     // Generate a salted hash based on login credentials, convert to base64
     let shash = s.clone();
     let mut hasher = Sha512::new();
@@ -115,8 +117,6 @@ fn main() -> anyhow::Result<()>
     hasher.update(salt.to_string());
     let shash = hasher.finalize();
     let shash = Base64::encode_string(&shash);
-    println!("{}", shash);
-    println!("{}", salt);
     // key derivation, this will be used to verify the user. We thus need to store the salt and the result of the derivation
     let password = pass.clone();
     let pbkdf_salt = salt;
@@ -137,49 +137,57 @@ fn main() -> anyhow::Result<()>
         {
             bail!("Invalid login credentials");
         }
+        println!("Your current managed sites are:");
         for entry in entries.clone()
         {
             println!("{}", dec_line(entry.to_string(), priv_key.clone())?);
         }
     }
 
-    let options = "Please enter the number corresponding to the option you would like to select\n 1. Add a new password\n 2. Edit a password\n 3. Remove a password\n Other: Exit";
-    let mut option = String::new();
-    option = read_trimmed(&mut option, options)?;
-    println!("Read input: {option}");
-    match option.parse::<i32>()?
+    let mut escaped = false;
+    while !escaped
     {
-        1 => {
-            let mut site = String::new();
-            let mut user = String::new();
-            let mut pass = String::new();
-            site = read_trimmed(&mut site, "Please type new entries site:")?;
-            user = read_trimmed(&mut user, "Please type new entries username:")?;
-            pass = read_trimmed(&mut pass, "Please type new entries password:")?;
-            entries.push(add_password(pub_key.clone(), site, user, pass)?);
+        let options = "Please enter the number corresponding to the option you would like to select\n 1. Add a new password\n 2. Edit a password\n 3. Remove a password\n Other: Exit";
+        let mut option = String::new();
+        option = read_trimmed(&mut option, options)?;
+        match option.as_str()
+        {
+            "1" => {
+                let mut site = String::new();
+                let mut user = String::new();
+                let mut pass = String::new();
+                site = read_trimmed(&mut site, "Please type new entries site:")?;
+                user = read_trimmed(&mut user, "Please type new entries username:")?;
+                pass = read_trimmed(&mut pass, "Please type new entries password:")?;
+                entries.push(add_password(pub_key.clone(), site, user, pass)?);
+            }
+            "2" => {
+                let mut site = String::new();
+                let mut user = String::new();
+                let mut pass = String::new();
+                site = read_trimmed(&mut site, "Please type the site's name:")?;
+                user = read_trimmed(&mut user, "Please type the site's username:")?;
+                pass = read_trimmed(&mut pass, "Please type the new password:")?;
+                delete_password(priv_key.clone(), &mut entries, site.clone())?;
+                entries.push(add_password(pub_key.clone(), site, user, pass)?);
+            }
+            "3" => {
+                let mut site = String::new();
+                site = read_trimmed(&mut site, "Please enter the name of the site to remove from management:")?;
+                delete_password(priv_key.clone(), &mut entries, site)?;
+            }
+            _ => {
+                escaped = true;
+                // Do nothing, exit
+            }
         }
-        2 => {
-            let mut site = String::new();
-            let mut user = String::new();
-            let mut pass = String::new();
-            site = read_trimmed(&mut site, "Please type the site's name:")?;
-            user = read_trimmed(&mut user, "Please type the site's username:")?;
-            pass = read_trimmed(&mut pass, "Please type the new password:")?;
-            delete_password(priv_key.clone(), &mut entries, site.clone())?;
-            entries.push(add_password(pub_key.clone(), site, user, pass)?);
+
+        println!("");
+        println!("Your current managed sites are:");
+        for entry in entries.clone()
+        {
+            println!("{}", dec_line(entry.to_string(), priv_key.clone())?);
         }
-        3 => {
-            let mut site = String::new();
-            site = read_trimmed(&mut site, "Please enter the name of the site to remove from management:")?;
-            delete_password(priv_key.clone(), &mut entries, site)?;
-        }
-        _ => {
-            // Do nothing, exit
-        }
-    }
-    for entry in entries.clone()
-    {
-        println!("{}", dec_line(entry.to_string(), priv_key.clone())?);
     }
     
     // Go through entries vector and decrypt all the entries
@@ -206,23 +214,28 @@ fn main() -> anyhow::Result<()>
         c += 1;
     }
 
-
+    let enc_log = enc_line(shash, pub_key.clone())?;
     let mut ver_cont : String = String::new();
     for e in entries.clone()
     {
         ver_cont.push_str(e.as_str());
     }
+    ver_cont.push_str(enc_log.clone().as_str());
     let mut ver_hasher = Sha512::new();
     ver_hasher.update(ver_cont);
     let ver_hash = Base64::encode_string(&ver_hasher.finalize());
 
-
-    let written = ver_hash + "\n" + salt.to_string().as_str() + "\n" + enc_line(shash, pub_key.clone())?.as_str() + "\n" + file_contents.as_str();
-    add_line(written)?;
-    // add_line(eh)?;
-    // add_line(pem)?;
-    // add_line(s)?;
-    // add_line(format!("{}\n", salt.to_string()))?;
+    // Prevents writing a blank line at the end of the file, which causes errors on attempting to decrypt entries
+    let prewrite = ver_hash + "\n" + salt.to_string().as_str() + "\n" + enc_log.as_str();
+    let written =  prewrite.clone() + "\n" + file_contents.as_str();
+    if !file_contents.is_empty()
+    {
+        add_line(written)?;
+    }
+    else
+    {
+        add_line(prewrite)?;
+    }
     print_file()
 }
 
@@ -269,12 +282,9 @@ fn delete_password(priv_key : RsaPrivateKey, entries : &mut Vec<String>, site : 
 
 fn enc_line(s: String, pub_key : RsaPublicKey) -> anyhow::Result<String>
 {
-    println!("{s}");
     let mut rng = rand::thread_rng();
     let enc = pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, s.as_bytes()).expect("failed to encrypt");
-    println!("{:?}", enc);
     let enc_h = hex::encode(enc);
-    println!("{enc_h}");
     return Ok(enc_h);
     
 }
@@ -282,10 +292,8 @@ fn enc_line(s: String, pub_key : RsaPublicKey) -> anyhow::Result<String>
 fn dec_line(s: String, priv_key : RsaPrivateKey) -> anyhow::Result<String>
 {
     let dec : Vec<u8> = hex::decode(s)?;
-    println!("{:?}", dec);
     let dec_s = priv_key.decrypt(Pkcs1v15Encrypt, &dec)?;
     let ret = std::str::from_utf8(&dec_s)?;
-    println!("{ret}");
     return Ok(ret.to_string());
 }
 
