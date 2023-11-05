@@ -10,10 +10,6 @@ impl PasswordEntry {
     pub fn serialize(self) -> String {
         format!("{}:{}:{}", self.site, self.username, self.password)
     }
-
-    pub fn deserialize(value: (String, String, String)) -> Self {
-        value.into()
-    }
 }
 
 impl From<String> for PasswordEntry {

@@ -1,10 +1,10 @@
-use std::{mem, str};
-use anyhow::{anyhow, bail};
+use std::{mem};
+use anyhow::{bail};
 use sha2::{Sha512, Digest};
 use base64ct::{Base64, Encoding};
 use pbkdf2::pbkdf2_hmac;
 use rand_chacha::ChaCha20Rng;
-use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
+use rsa::{RsaPrivateKey, RsaPublicKey};
 use rand::SeedableRng;
 use crate::manager::Manager;
 use crate::password_entry::PasswordEntry;
@@ -21,7 +21,7 @@ impl CryptoManager for Manager {
         let username = username.into();
         let password = password.into();
         let credentials = format!("{username}:{password}");
-        let mut hasher = Sha512::new();
+        let hasher = Sha512::new();
         let salt = rand::random::<i32>().to_string();
 
         let hash = hasher

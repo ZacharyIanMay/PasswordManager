@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+
 pub(crate) use anyhow::Result as Result;
 use clap::Parser;
 use crate::cli::{Cli, Commands, EntryArgs};
