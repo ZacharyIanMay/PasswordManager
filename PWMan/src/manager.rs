@@ -1,7 +1,7 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Lines, Write};
 use std::path::PathBuf;
-use std::{mem, str};
+use std::{str};
 use anyhow::{anyhow, bail};
 use base64ct::{Base64, Encoding};
 use log::error;
@@ -12,7 +12,7 @@ use crate::password_entry::PasswordEntry;
 
 #[derive(Debug, Default)]
 pub struct Manager {
-    pub profile: Option<Profile>,
+    pub profile: Profile,
     pub rsa_public: Option<RsaPublicKey>,
     pub rsa_private: Option<RsaPrivateKey>,
 }
@@ -23,6 +23,19 @@ pub struct Profile {
     pub salt: i32,
     pub login_verification_hash: String,
     pub entries: Vec<String>,
+    pub new_file: bool,
+}
+
+impl Default for Profile {
+    fn default() -> Self {
+        Self {
+            original_hash: "".to_string(),
+            salt: rand::random::<i32>(),
+            login_verification_hash: "".to_string(),
+            entries: vec![],
+            new_file: true,
+        }
+    }
 }
 
 impl Profile {
@@ -39,6 +52,7 @@ impl Profile {
             login_verification_hash,
             salt,
             entries,
+            new_file: false,
         })
     }
 
@@ -123,7 +137,7 @@ impl Manager {
         return match result {
             Ok(profile) => {
                 Self {
-                    profile: Some(profile),
+                    profile,
                     ..Default::default()
                 }
             }
@@ -135,16 +149,10 @@ impl Manager {
     }
 
     pub fn add_password(&mut self, username: String, password: String, site: String) -> crate::Result<()> {
-        let profile = mem::replace(&mut self.profile, None);
-        if let Some(mut profile) = profile {
-            let entry: PasswordEntry = (site, username, password).into();
-            let serialized = entry.serialize();
-            let encrypted = self.encrypt_hash(&serialized)?;
-            profile.entries.push(encrypted);
-            let _ = mem::replace(&mut self.profile, Some(profile));
-        } else {
-            bail!("Failed to add password. Missing profile");
-        }
+        let entry: PasswordEntry = (site, username, password).into();
+        let serialized = entry.serialize();
+        let encrypted = self.encrypt_hash(&serialized)?;
+        self.profile.entries.push(encrypted);
 
         Ok(())
     }
@@ -159,6 +167,18 @@ impl Manager {
         entries.remove(position);
 
         self.submit_entries(entries)
+    }
+
+    pub fn get_password(&self, site: String) -> crate::Result<PasswordEntry> {
+        let entries = self.retrieve_entries()?;
+
+        let entry = entries
+            .iter()
+            .find(|entry| entry.site == site)
+            .ok_or(anyhow!("Failed to find the entry"))?
+            .clone();
+
+        Ok(entry)
     }
 
     pub fn update_password(&mut self, site: String, username: String, password: String) -> crate::Result<()> {

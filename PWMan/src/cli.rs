@@ -20,6 +20,9 @@ pub(crate) enum Commands {
         site: String
     },
     Modify(EntryArgs),
+    Get {
+        site: Option<String>
+    }
 }
 
 #[derive(Args)]

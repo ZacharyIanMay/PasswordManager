@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug)]
 pub struct PasswordEntry {
@@ -9,6 +10,12 @@ pub struct PasswordEntry {
 impl PasswordEntry {
     pub fn serialize(self) -> String {
         format!("{}:{}:{}", self.site, self.username, self.password)
+    }
+}
+
+impl Display for PasswordEntry {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.clone().serialize())
     }
 }
 
